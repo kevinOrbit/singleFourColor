@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>单张海报配色生成器</title>
+    <style>
+        :root {
+            --c1: #1E459F;
+            --c2: #CF2A2A;
+            --c3: #FABD32;
+            --c4: #E1DCCA;
+            --poster-bg: #FDF8F0; 
+            --title-color: #143068;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #2c2c2c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        .workspace {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* --- 左侧控制面板 --- */
+        .controls {
+            background: #fff;
+            padding: 25px;
+            border-radius: 16px;
+            width: 280px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .controls h3 { margin-top: 0; margin-bottom: 20px; color: #333; font-size: 18px; }
+        
+        .section-title {
+            font-size: 12px; font-weight: bold; color: #888; 
+            margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .color-input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            transition: border-color 0.2s;
+        }
+        .color-input-group:hover { border-color: #ccc; }
+        .color-input-group label { width: 20px; font-weight: bold; color: #999; font-size: 14px; }
+        
+        .color-input-group input[type="color"] {
+            border: none; width: 30px; height: 30px; cursor: pointer; background: none; margin-right: 10px; padding: 0;
+        }
+        
+        .color-input-group input[type="text"] {
+            border: none; background: transparent; width: 80px; 
+            font-family: 'Monaco', monospace; font-size: 13px; color: #555;
+            outline: none; text-transform: uppercase; cursor: copy;
+        }
+        .color-input-group input[type="text"]:hover { color: #3b82f6; font-weight: bold; }
+        
+        select {
+            width: 100%; padding: 10px; border: 1px solid #ddd; 
+            border-radius: 8px; font-size: 14px; margin-bottom: 10px;
+            background-color: #fff; outline: none;
+        }
+        
+        /* 通用按钮 */
+        button {
+            width: 100%; padding: 12px; border: none; 
+            border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 8px;
+            transition: 0.2s; font-size: 14px;
+        }
+        
+        .btn-generate { background: #3b82f6; color: white; }
+        .btn-generate:hover { background: #2563eb; transform: translateY(-1px); }
+        
+        .btn-download { background: #e5e7eb; color: #374151; margin-top: 20px; }
+        .btn-download:hover { background: #d1d5db; }
+
+        /* 新增：文字链接按钮 (用于复制整组) */
+        .btn-text-action {
+            display: block;
+            text-align: right;
+            font-size: 12px;
+            color: #3b82f6;
+            cursor: pointer;
+            margin-top: 5px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-text-action:hover { text-decoration: underline; color: #2563eb; }
+
+        /* --- 右侧海报区域 --- */
+        .poster-card {
+            width: 500px;
+            height: 600px; 
+            background-color: var(--poster-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+            background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)); 
+        }
+
+        .poster-header {
+            text-align: center;
+            width: 390px; 
+            margin-bottom: 35px;
+            margin-top: -20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-subtitle {
+            font-size: 14px; font-weight: 600; color: #8892b0;
+            letter-spacing: 4px; text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .header-title {
+            font-size: 48px; font-weight: 800; color: var(--title-color);
+            text-transform: uppercase; letter-spacing: 2px;
+            line-height: 1; margin-bottom: 0px;
+        }
+
+        .header-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; 
+            margin-top: 5px;
+        }
+
+        .serial-number {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: #999;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            /* 改动：增加手型和交互提示 */
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .serial-number:hover {
+            color: #3b82f6;
+        }
+        .serial-number:active {
+            transform: scale(0.95);
+        }
+
+        .separator-line {
+            width: 100%; height: 2px; background-color: #e0e0e0; border-radius: 2px;
+        }
+
+        .palette-container { display: flex; gap: 16px; }
+
+        .swatch-group {
+            display: flex; flex-direction: column; align-items: center; width: 85px;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .swatch-group:hover { transform: translateY(-5px); }
+        .swatch-group:active { transform: translateY(0); }
+
+        .color-rect {
+            width: 100%; height: 240px; margin-bottom: 20px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08); 
+            border-radius: 10px;
+            transition: background-color 0.4s ease; 
+        }
+        
+        .rect-1 { background-color: var(--c1); }
+        .rect-2 { background-color: var(--c2); }
+        .rect-3 { background-color: var(--c3); }
+        .rect-4 { background-color: var(--c4); }
+
+        .hex-label {
+            font-size: 14px; font-weight: 600; color: #333;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            font-family: 'Monaco', monospace;
+        }
+
+        .watermark {
+            margin-top: 40px; font-size: 14px; font-weight: 700;
+            color: #4f4f4f; letter-spacing: 1px; font-family: sans-serif; opacity: 0.8;
+        }
+
+        /* --- Toast --- */
+        #toast {
+            visibility: hidden; min-width: 200px; margin-left: -100px;
+            background-color: rgba(30, 30, 30, 0.9); color: #fff;
+            text-align: center; border-radius: 50px; padding: 12px;
+            position: fixed; z-index: 100; left: 50%; bottom: 30px;
+            font-size: 14px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            opacity: 0; transform: translateY(20px); transition: all 0.3s;
+        }
+        #toast.show { visibility: visible; opacity: 1; transform: translateY(0); }
+
+    </style>
+</head>
+<body>
+
+<div class="workspace">
+    
+    <!-- 左侧控制面板 -->
+    <div class="controls">
+        <h3>🎨 配色工作台</h3>
+        
+        <div class="section-title">智能生成</div>
+        <select id="themeSelect">
+            <option value="pastel">马卡龙 (Pastel)</option>
+            <option value="vibrant">多巴胺 (Vibrant)</option>
+            <option value="morandi">莫兰迪 (Morandi)</option>
+            <option value="natural">自然风景 (Natural)</option>
+            <option value="monochrome">极简单色 (Mono)</option>
+            <option value="dark">赛博朋克 (Dark)</option>
+            <option value="forest">森林物语 (Forest)</option>
+            <option value="ocean">深海幽蓝 (Ocean)</option>
+            <option value="luxury">黑金奢华 (Luxury)</option>
+        </select>
+        <button class="btn-generate" onclick="generateNewPalette()">✨ 随机生成配色</button>
+
+        <div class="section-title" style="margin-top: 25px;">微调颜色 (点击编码复制)</div>
+        
+        <div class="color-input-group">
+            <label>1</label>
+            <input type="color" id="p1" value="#1E459F" oninput="updatePoster(1, this.value)">
+            <input type="text" id="t1" value="#1E459F" readonly onclick="copyFromInput(this)">
+        </div>
+        
+        <div class="color-input-group">
+            <label>2</label>
+            <input type="color" id="p2" value="#CF2A2A" oninput="updatePoster(2, this.value)">
+            <input type="text" id="t2" value="#CF2A2A" readonly onclick="copyFromInput(this)">
+        </div>
+
+        <div class="color-input-group">
+            <label>3</label>
+            <input type="color" id="p3" value="#FABD32" oninput="updatePoster(3, this.value)">
+            <input type="text" id="t3" value="#FABD32" readonly onclick="copyFromInput(this)">
+        </div>
+
+        <div class="color-input-group">
+            <label>4</label>
+            <input type="color" id="p4" value="#E1DCCA" oninput="updatePoster(4, this.value)">
+            <input type="text" id="t4" value="#E1DCCA" readonly onclick="copyFromInput(this)">
+        </div>
+
+        <!-- 新增：小巧的复制整组按钮 -->
+        <a class="btn-text-action" onclick="copyAllHex()">📋 复制整组色值</a>
+
+        <button class="btn-download" onclick="downloadPoster()">📷 保存图片 (截图)</button>
+    </div>
+
+    <!-- 右侧海报区域 -->
+    <div class="poster-card" id="myPoster">
+        
+        <!-- 头部 -->
+        <div class="poster-header">
+            <div class="header-title" id="themeTitle">VIBRANT</div>
+            <!-- <div class="header-subtitle">Color Palette</div> -->            
+            <div class="header-meta">
+                <!-- 这里也添加了点击事件 -->
+                <span class="serial-number" id="serialNo" onclick="copyAllHex()" title="点击复制所有颜色">No.001</span>
+                <div class="separator-line"></div>
+            </div>
+        </div>
+        
+        <!-- 色块 -->
+        <div class="palette-container">
+            <div class="swatch-group" onclick="copyColorByIndex(1)">
+                <div class="color-rect rect-1"></div>
+                <div class="hex-label" id="label-1">1E459F</div>
+            </div>
+            <div class="swatch-group" onclick="copyColorByIndex(2)">
+                <div class="color-rect rect-2"></div>
+                <div class="hex-label" id="label-2">CF2A2A</div>
+            </div>
+            <div class="swatch-group" onclick="copyColorByIndex(3)">
+                <div class="color-rect rect-3"></div>
+                <div class="hex-label" id="label-3">FABD32</div>
+            </div>
+            <div class="swatch-group" onclick="copyColorByIndex(4)">
+                <div class="color-rect rect-4"></div>
+                <div class="hex-label" id="label-4">E1DCCA</div>
+            </div>
+        </div>
+
+        <div class="watermark">@Kaimana</div>
+    </div>
+
+</div>
+
+<div id="toast">已复制到剪贴板</div>
+
+<script>
+    // 数学工具
+    function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    function hslToHex(h, s, l) {
+        l /= 100;
+        const a = s * Math.min(l, 1 - l) / 100;
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+        };
+        return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+    }
+
+    // 算法逻辑
+    function generateGradientColors(count, options) {
+        const { 
+            baseHue = rand(0, 360), hueSpan = 60, sRange = [60, 85], lRange = [30, 80],
+            hueDirection = Math.random() > 0.5 ? 1 : -1
+        } = options;
+        let hslColors = [];
+        for (let i = 0; i < count; i++) {
+            const progress = i / (count - 1);
+            const h = (baseHue + (progress * hueSpan * hueDirection) + 360) % 360;
+            const s = rand(sRange[0], sRange[1]);
+            const lStart = lRange[0], lEnd = lRange[1];
+            let l = lStart + (progress * (lEnd - lStart)) + rand(-5, 5); 
+            hslColors.push({h, s, l});
+        }
+        if (Math.random() > 0.5) hslColors.reverse();
+        return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+    }
+
+    function getColorsByTheme(theme) {
+        const count = 4;
+        let hslColors = [];
+
+        if (theme === 'vibrant') {
+            const baseHue = rand(0, 360);
+            const endHue = (baseHue + 120 + rand(0, 120)) % 360;
+            hslColors.push({h: baseHue, s: rand(80, 100), l: rand(50, 65)});
+            for (let i = 1; i < count - 1; i++) {
+                const ratio = i / (count - 1);
+                let h = (baseHue + (endHue - baseHue) * ratio + 360) % 360; 
+                hslColors.push({h: h, s: rand(85, 95), l: rand(55, 70)});
+            }
+            hslColors.push({h: endHue, s: rand(80, 100), l: rand(50, 65)});
+            return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+        }
+        else if (theme === 'morandi') {
+            const baseHue = rand(0, 360);
+            for(let i=0; i<count; i++) {
+                let h = (baseHue + (i * 45) + rand(-15,15)) % 360; 
+                hslColors.push({h, s: rand(10, 30), l: rand(60, 75)});
+            }
+            hslColors.sort((a, b) => a.l - b.l);
+            return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+        }
+        else if (theme === 'pastel') {
+            const baseHue = rand(0, 360);
+            for(let i=0; i<count; i++) {
+                hslColors.push({h: (baseHue + i * rand(30, 60)) % 360, s: rand(40, 70), l: rand(82, 92)});
+            }
+            return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+        }
+        else if (theme === 'natural') {
+            return generateGradientColors(4, { hueSpan: rand(40, 80), sRange: [50, 80], lRange: [30, 85] });
+        }
+        else if (theme === 'monochrome') {
+            const baseHue = rand(0, 360);
+            const s = rand(20, 80);
+            for(let i=0; i<count; i++) {
+                hslColors.push({h: (baseHue + rand(-5, 5) + 360) % 360, s, l: 20 + ((i / (count - 1)) * 70)});
+            }
+            hslColors.sort((a, b) => a.l - b.l);
+            return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+        }
+        else if (theme === 'dark') {
+            const baseHue = rand(220, 340);
+            for(let i=0; i<3; i++) hslColors.push({h: (baseHue + i * 20) % 360, s: rand(60, 80), l: rand(5, 20)});
+            hslColors.push({h: (baseHue + 180) % 360, s: 100, l: rand(60, 80)});
+            return hslColors.map(c => hslToHex(c.h, c.s, c.l));
+        }
+        else if (theme === 'forest') {
+            if (Math.random() > 0.3) return generateGradientColors(4, { baseHue: rand(90, 140), hueSpan: 30, sRange: [30, 60], lRange: [25, 80] });
+            else return [hslToHex(rand(100,140), rand(40,60), rand(20,35)), hslToHex(rand(90,130), rand(40,60), rand(60,80)), hslToHex(rand(25,45), rand(40,60), rand(30,50)), hslToHex(rand(30,50), rand(10,30), rand(85,95))];
+        }
+        else if (theme === 'ocean') {
+             return generateGradientColors(4, { baseHue: rand(180, 240), hueSpan: 40, sRange: [50, 90], lRange: [15, 90] });
+        }
+        else if (theme === 'luxury') {
+            return [hslToHex(0, 0, rand(5, 12)), hslToHex(210, 10, rand(30, 50)), hslToHex(rand(35,45), rand(70,90), rand(50,60)), hslToHex(rand(35,45), rand(50,70), rand(75,85))];
+        }
+        return ['#000000', '#333333', '#666666', '#999999'];
+    }
+
+    // UI 交互
+    function generateNewPalette() {
+        const themeSelect = document.getElementById('themeSelect');
+        const themeValue = themeSelect.value;
+        const colors = getColorsByTheme(themeValue);
+        
+        document.getElementById('themeTitle').innerText = themeValue;
+        
+        const randomNum = String(rand(1, 999)).padStart(3, '0');
+        document.getElementById('serialNo').innerText = `No.${randomNum}`;
+
+        colors.forEach((color, index) => {
+            updatePoster(index + 1, color);
+        });
+    }
+
+    function updatePoster(index, color) {
+        if(!color.startsWith('#') && color.length === 6) color = '#' + color;
+        
+        document.documentElement.style.setProperty(`--c${index}`, color);
+
+        let displayHex = color.replace('#', '').toUpperCase();
+        document.getElementById(`label-${index}`).innerText = displayHex;
+        document.getElementById(`p${index}`).value = color;
+        document.getElementById(`t${index}`).value = color.toUpperCase();
+    }
+
+    function downloadPoster() {
+        alert("提示：\nPC端：请直接使用 微信截图 (Alt+A) 或 QQ截图。\n移动端：请直接手机截屏。\n\n这样获取的图片质量最高！");
+    }
+
+    // 复制与提示
+    function showToast(message) {
+        var toast = document.getElementById("toast");
+        toast.className = "show";
+        toast.innerText = message;
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2000);
+    }
+
+    function copyFromInput(inputElement) {
+        const color = inputElement.value;
+        navigator.clipboard.writeText(color).then(() => {
+            showToast(`颜色 ${color} 已复制`);
+        });
+    }
+
+    function copyColorByIndex(index) {
+        const color = document.getElementById(`t${index}`).value;
+        navigator.clipboard.writeText(color).then(() => {
+            showToast(`颜色 ${color} 已复制`);
+        });
+    }
+
+    // 新增：复制整组颜色
+    function copyAllHex() {
+        // 获取所有颜色
+        const c1 = document.getElementById('t1').value;
+        const c2 = document.getElementById('t2').value;
+        const c3 = document.getElementById('t3').value;
+        const c4 = document.getElementById('t4').value;
+        
+        // 格式化为逗号分隔字符串
+        const allColors = `${c1}, ${c2}, ${c3}, ${c4}`;
+        
+        navigator.clipboard.writeText(allColors).then(() => {
+            showToast('整组颜色已复制到剪贴板');
+        }).catch(err => {
+            console.error('复制失败', err);
+            alert('复制失败，请手动复制');
+        });
+    }
+
+    window.onload = generateNewPalette;
+
+</script>
+
+</body>
+</html>
