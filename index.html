@@ -2,15 +2,23 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>单张海报配色生成器</title>
+    <!-- 1. 核心适配：设置视口，确保移动端渲染比例正确 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SINGLE COLOR PALETE -@KAIMANA</title>
     <style>
         :root {
-            --c1: #1E459F;
-            --c2: #CF2A2A;
-            --c3: #FABD32;
-            --c4: #E1DCCA;
+            --c1: #BDEBC7;
+            --c2: #C5F1F1;
+            --c3: #C3CEEF;
+            --c4: #D9D1EB;
             --poster-bg: #FDF8F0; 
             --title-color: #143068;
+        }
+
+        /* 全局盒模型，防止padding撑破布局 */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -18,10 +26,11 @@
             background-color: #2c2c2c;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: center; /* 电脑端垂直居中 */
             min-height: 100vh;
             margin: 0;
             color: #333;
+            padding: 20px; /* 边缘留白 */
         }
 
         .workspace {
@@ -30,6 +39,8 @@
             align-items: flex-start;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
+            max-width: 1200px;
         }
 
         /* --- 左侧控制面板 --- */
@@ -37,7 +48,8 @@
             background: #fff;
             padding: 25px;
             border-radius: 16px;
-            width: 280px;
+            width: 300px; /* 略微加宽 */
+            flex-shrink: 0;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
         .controls h3 { margin-top: 0; margin-bottom: 20px; color: #333; font-size: 18px; }
@@ -65,11 +77,10 @@
         }
         
         .color-input-group input[type="text"] {
-            border: none; background: transparent; width: 80px; 
+            border: none; background: transparent; width: 100%; 
             font-family: 'Monaco', monospace; font-size: 13px; color: #555;
             outline: none; text-transform: uppercase; cursor: copy;
         }
-        .color-input-group input[type="text"]:hover { color: #3b82f6; font-weight: bold; }
         
         select {
             width: 100%; padding: 10px; border: 1px solid #ddd; 
@@ -85,28 +96,33 @@
         }
         
         .btn-generate { background: #3b82f6; color: white; }
-        .btn-generate:hover { background: #2563eb; transform: translateY(-1px); }
+        .btn-generate:active { transform: scale(0.98); }
+        .btn-generate:hover { background: #2563eb; }
         
         .btn-download { background: #e5e7eb; color: #374151; margin-top: 20px; }
-        .btn-download:hover { background: #d1d5db; }
 
-        /* 新增：文字链接按钮 (用于复制整组) */
+        /* 文字链接按钮 (用于复制整组) */
         .btn-text-action {
             display: block;
             text-align: right;
             font-size: 12px;
             color: #3b82f6;
             cursor: pointer;
-            margin-top: 5px;
+            margin-top: 10px; /* 增加一点间距 */
             text-decoration: none;
             font-weight: 500;
+            padding: 5px 0; /* 增加点击区域 */
         }
         .btn-text-action:hover { text-decoration: underline; color: #2563eb; }
 
-        /* --- 右侧海报区域 --- */
+        /* --- 右侧海报区域 (响应式改造) --- */
         .poster-card {
-            width: 500px;
-            height: 600px; 
+            width: 100%;
+            max-width: 500px; /* 电脑端最大宽度 */
+            /* 使用 aspect-ratio 保持长方形比例，不再写死 height */
+            aspect-ratio: 5/6;
+            min-height: 200px; /* 电脑端保持高度 */
+            
             background-color: var(--poster-bg);
             display: flex;
             flex-direction: column;
@@ -115,27 +131,31 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             position: relative;
             background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)); 
+            padding: 40px 0;
         }
 
-        .poster-header {
-            text-align: center;
-            width: 390px; 
-            margin-bottom: 35px;
-            margin-top: -20px;
+        /* 核心布局容器：控制内容占海报宽度的 80%，实现自适应 */
+        .poster-content-wrapper {
+            width: 80%;
             display: flex;
             flex-direction: column;
         }
 
-        .header-subtitle {
-            font-size: 14px; font-weight: 600; color: #8892b0;
-            letter-spacing: 4px; text-transform: uppercase;
-            margin-bottom: 5px;
+        .poster-header {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
         }
 
         .header-title {
-            font-size: 48px; font-weight: 800; color: var(--title-color);
+            /* 字体流体缩放：最小32px，最大48px */
+            font-size: clamp(32px, 8vw, 48px);
+            font-weight: 800; color: var(--title-color);
             text-transform: uppercase; letter-spacing: 2px;
             line-height: 1; margin-bottom: 0px;
+            word-break: break-word;
         }
 
         .header-meta {
@@ -143,6 +163,7 @@
             flex-direction: column;
             align-items: flex-end; 
             margin-top: 5px;
+            width: 100%;
         }
 
         .serial-number {
@@ -152,32 +173,38 @@
             color: #999;
             letter-spacing: 1px;
             margin-bottom: 5px;
-            /* 改动：增加手型和交互提示 */
             cursor: pointer;
             transition: color 0.2s;
         }
-        .serial-number:hover {
-            color: #3b82f6;
-        }
-        .serial-number:active {
-            transform: scale(0.95);
-        }
+        .serial-number:hover { color: #3b82f6; }
+        .serial-number:active { transform: scale(0.95); }
 
         .separator-line {
             width: 100%; height: 2px; background-color: #e0e0e0; border-radius: 2px;
         }
 
-        .palette-container { display: flex; gap: 16px; }
+        /* 色块区域自适应 */
+        .palette-container { 
+            display: flex; 
+            gap: 4%; /* 使用百分比间距 */
+            width: 100%;
+            justify-content: space-between;
+        }
 
         .swatch-group {
-            display: flex; flex-direction: column; align-items: center; width: 85px;
+            display: flex; flex-direction: column; align-items: center; 
+            flex: 1; /* 平分宽度 */
             cursor: pointer; transition: transform 0.2s;
         }
         .swatch-group:hover { transform: translateY(-5px); }
         .swatch-group:active { transform: translateY(0); }
 
         .color-rect {
-            width: 100%; height: 240px; margin-bottom: 20px; 
+            width: 100%; 
+            /* 保持色块长宽比 */
+            aspect-ratio: 0.35; 
+            min-height: 140px; 
+            margin-bottom: 20px; 
             box-shadow: 0 5px 15px rgba(0,0,0,0.08); 
             border-radius: 10px;
             transition: background-color 0.4s ease; 
@@ -189,14 +216,43 @@
         .rect-4 { background-color: var(--c4); }
 
         .hex-label {
-            font-size: 14px; font-weight: 600; color: #333;
+            font-size: clamp(10px, 3vw, 14px); /* 字体自适应 */
+            font-weight: 600; color: #333;
             text-transform: uppercase; letter-spacing: 0.5px;
             font-family: 'Monaco', monospace;
+            white-space: nowrap;
         }
 
         .watermark {
             margin-top: 40px; font-size: 14px; font-weight: 700;
             color: #4f4f4f; letter-spacing: 1px; font-family: sans-serif; opacity: 0.8;
+        }
+
+        /* --- 移动端专用样式 --- */
+        @media screen and (max-width: 850px) {
+            body {
+                align-items: flex-start; /* 顶部对齐 */
+                padding: 15px;
+                height: auto;
+            }
+
+            .workspace {
+                flex-direction: column; /* 上下结构 */
+                align-items: center;
+                gap: 20px;
+            }
+
+            .controls {
+                width: 100%; /* 面板占满 */
+                max-width: 500px;
+            }
+
+            .poster-card {
+                width: 100%;
+                min-height: auto; /* 取消固定高度 */
+                margin-bottom: 20px; /* 底部留白，方便截图 */
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            }
         }
 
         /* --- Toast --- */
@@ -216,7 +272,48 @@
 
 <div class="workspace">
     
-    <!-- 左侧控制面板 -->
+
+
+    <!-- 右侧海报区域 -->
+    <div class="poster-card" id="myPoster">
+        
+        <!-- 使用 Wrapper 包裹内容实现自适应对齐 -->
+        <div class="poster-content-wrapper">
+            <!-- 头部 -->
+            <div class="poster-header">
+                <div class="header-title" id="themeTitle">PASTEL</div>
+                <div class="header-meta">
+                    <!-- 保持点击复制所有颜色的功能 -->
+                    <span class="serial-number" id="serialNo" onclick="copyAllHex()" title="点击复制所有颜色">No.001</span>
+                    <div class="separator-line"></div>
+                </div>
+            </div>
+            
+            <!-- 色块 -->
+            <div class="palette-container">
+                <div class="swatch-group" onclick="copyColorByIndex(1)">
+                    <div class="color-rect rect-1"></div>
+                    <div class="hex-label" id="label-1">BDEBC7</div>
+                </div>
+                <div class="swatch-group" onclick="copyColorByIndex(2)">
+                    <div class="color-rect rect-2"></div>
+                    <div class="hex-label" id="label-2">C5F1F1</div>
+                </div>
+                <div class="swatch-group" onclick="copyColorByIndex(3)">
+                    <div class="color-rect rect-3"></div>
+                    <div class="hex-label" id="label-3">C3CEEF</div>
+                </div>
+                <div class="swatch-group" onclick="copyColorByIndex(4)">
+                    <div class="color-rect rect-4"></div>
+                    <div class="hex-label" id="label-4">D9D1EB</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="watermark">@Kaimana</div>
+    </div>
+
+        <!-- 左侧控制面板 -->
     <div class="controls">
         <h3>🎨 配色工作台</h3>
         
@@ -238,71 +335,33 @@
         
         <div class="color-input-group">
             <label>1</label>
-            <input type="color" id="p1" value="#1E459F" oninput="updatePoster(1, this.value)">
-            <input type="text" id="t1" value="#1E459F" readonly onclick="copyFromInput(this)">
+            <input type="color" id="p1" value="#BDEBC7" oninput="updatePoster(1, this.value)">
+            <input type="text" id="t1" value="#BDEBC7" readonly onclick="copyFromInput(this)">
         </div>
         
         <div class="color-input-group">
             <label>2</label>
-            <input type="color" id="p2" value="#CF2A2A" oninput="updatePoster(2, this.value)">
-            <input type="text" id="t2" value="#CF2A2A" readonly onclick="copyFromInput(this)">
+            <input type="color" id="p2" value="#C5F1F1" oninput="updatePoster(2, this.value)">
+            <input type="text" id="t2" value="#C5F1F1" readonly onclick="copyFromInput(this)">
         </div>
 
         <div class="color-input-group">
             <label>3</label>
-            <input type="color" id="p3" value="#FABD32" oninput="updatePoster(3, this.value)">
-            <input type="text" id="t3" value="#FABD32" readonly onclick="copyFromInput(this)">
+            <input type="color" id="p3" value="#C3CEEF" oninput="updatePoster(3, this.value)">
+            <input type="text" id="t3" value="#C3CEEF" readonly onclick="copyFromInput(this)">
         </div>
 
         <div class="color-input-group">
             <label>4</label>
-            <input type="color" id="p4" value="#E1DCCA" oninput="updatePoster(4, this.value)">
-            <input type="text" id="t4" value="#E1DCCA" readonly onclick="copyFromInput(this)">
+            <input type="color" id="p4" value="#D9D1EB" oninput="updatePoster(4, this.value)">
+            <input type="text" id="t4" value="#D9D1EB" readonly onclick="copyFromInput(this)">
         </div>
 
-        <!-- 新增：小巧的复制整组按钮 -->
+        <!-- 小巧的复制整组按钮 -->
         <a class="btn-text-action" onclick="copyAllHex()">📋 复制整组色值</a>
 
-        <button class="btn-download" onclick="downloadPoster()">📷 保存图片 (截图)</button>
+        <button class="btn-download" onclick="downloadPoster()">📷 保存提示</button>
     </div>
-
-    <!-- 右侧海报区域 -->
-    <div class="poster-card" id="myPoster">
-        
-        <!-- 头部 -->
-        <div class="poster-header">
-            <div class="header-title" id="themeTitle">VIBRANT</div>
-            <!-- <div class="header-subtitle">Color Palette</div> -->            
-            <div class="header-meta">
-                <!-- 这里也添加了点击事件 -->
-                <span class="serial-number" id="serialNo" onclick="copyAllHex()" title="点击复制所有颜色">No.001</span>
-                <div class="separator-line"></div>
-            </div>
-        </div>
-        
-        <!-- 色块 -->
-        <div class="palette-container">
-            <div class="swatch-group" onclick="copyColorByIndex(1)">
-                <div class="color-rect rect-1"></div>
-                <div class="hex-label" id="label-1">1E459F</div>
-            </div>
-            <div class="swatch-group" onclick="copyColorByIndex(2)">
-                <div class="color-rect rect-2"></div>
-                <div class="hex-label" id="label-2">CF2A2A</div>
-            </div>
-            <div class="swatch-group" onclick="copyColorByIndex(3)">
-                <div class="color-rect rect-3"></div>
-                <div class="hex-label" id="label-3">FABD32</div>
-            </div>
-            <div class="swatch-group" onclick="copyColorByIndex(4)">
-                <div class="color-rect rect-4"></div>
-                <div class="hex-label" id="label-4">E1DCCA</div>
-            </div>
-        </div>
-
-        <div class="watermark">@Kaimana</div>
-    </div>
-
 </div>
 
 <div id="toast">已复制到剪贴板</div>
@@ -440,7 +499,9 @@
         var toast = document.getElementById("toast");
         toast.className = "show";
         toast.innerText = message;
-        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2000);
+        // 清除之前的timer，防止闪烁
+        if(window.toastTimer) clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2000);
     }
 
     function copyFromInput(inputElement) {
@@ -469,14 +530,21 @@
         const allColors = `${c1}, ${c2}, ${c3}, ${c4}`;
         
         navigator.clipboard.writeText(allColors).then(() => {
-            showToast('整组颜色已复制到剪贴板');
+            showToast('整组颜色已复制');
         }).catch(err => {
             console.error('复制失败', err);
-            alert('复制失败，请手动复制');
+            // 兼容性方案
+            const textArea = document.createElement("textarea");
+            textArea.value = allColors;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("Copy");
+            textArea.remove();
+            showToast('整组颜色已复制');
         });
     }
 
-    window.onload = generateNewPalette;
+    //window.onload = generateNewPalette;
 
 </script>
 
