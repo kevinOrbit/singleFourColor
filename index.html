@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <!-- 1. 核心适配：设置视口，确保移动端渲染比例正确 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>单张海报配色生成器</title>
+    <title>海报配色生成器-@Kaimana</title>
+    <!-- 引入 html-to-image 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
     <style>
         :root {
             --c1: #BDEBC7;
@@ -99,7 +101,16 @@
         .btn-generate:active { transform: scale(0.98); }
         .btn-generate:hover { background: #2563eb; }
         
-        .btn-download { background: #e5e7eb; color: #374151; margin-top: 20px; }
+        /* 修改后的导出按钮样式 */
+        .btn-download { 
+            background: #10b981; /* 绿色，表示完成/保存 */
+            color: white; 
+            margin-top: 20px; 
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+        }
+        .btn-download:hover { background: #059669; }
+        .btn-download:active { transform: scale(0.98); }
+        .btn-download:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
 
         /* 文字链接按钮 (用于复制整组) */
         .btn-text-action {
@@ -132,6 +143,8 @@
             position: relative;
             background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)); 
             padding: 40px 0;
+            /* 确保导出时背景色正常 */
+            overflow: hidden; 
         }
 
         /* 核心布局容器：控制内容占海报宽度的 80%，实现自适应 */
@@ -196,6 +209,7 @@
             flex: 1; /* 平分宽度 */
             cursor: pointer; transition: transform 0.2s;
         }
+        /* 导出时去掉交互效果，但这不影响 html-to-image 截图静态帧 */
         .swatch-group:hover { transform: translateY(-5px); }
         .swatch-group:active { transform: translateY(0); }
 
@@ -250,7 +264,7 @@
             .poster-card {
                 width: 100%;
                 min-height: auto; /* 取消固定高度 */
-                margin-bottom: 20px; /* 底部留白，方便截图 */
+                margin-bottom: 20px; 
                 box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             }
         }
@@ -272,11 +286,8 @@
 
 <div class="workspace">
     
-
-
     <!-- 右侧海报区域 -->
     <div class="poster-card" id="myPoster">
-        
         <!-- 使用 Wrapper 包裹内容实现自适应对齐 -->
         <div class="poster-content-wrapper">
             <!-- 头部 -->
@@ -313,7 +324,7 @@
         <div class="watermark">@Kaimana</div>
     </div>
 
-        <!-- 左侧控制面板 -->
+    <!-- 左侧控制面板 -->
     <div class="controls">
         <h3>🎨 配色工作台</h3>
         
@@ -325,8 +336,6 @@
             <option value="natural">自然风景 (Natural)</option>
             <option value="forest">森林物语 (Forest)</option>
             <option value="ocean">深海幽蓝 (Ocean)</option>
-
-                <!-- === 新增以下四个选项 === -->
             <option value="retro">复古胶片 (Retro)</option>
             <option value="tradition">东方雅韵 (Tradition)</option>
         </select>
@@ -361,7 +370,8 @@
         <!-- 小巧的复制整组按钮 -->
         <a class="btn-text-action" onclick="copyAllHex()">📋 复制整组色值</a>
 
-        <button class="btn-download" onclick="downloadPoster()">📷 保存提示</button>
+        <!-- === 修改点：按钮改为导出海报 === -->
+        <button class="btn-download" id="btnExport" onclick="exportPoster()">🖼️ 导出高清海报</button>
     </div>
 </div>
 
@@ -445,93 +455,42 @@
             else return [hslToHex(rand(100,140), rand(40,60), rand(20,35)), hslToHex(rand(90,130), rand(40,60), rand(60,80)), hslToHex(rand(25,45), rand(40,60), rand(30,50)), hslToHex(rand(30,50), rand(10,30), rand(85,95))];
         }
         else if (theme === 'ocean') {
-            //return generateGradientColors(4, { baseHue: rand(180, 240), hueSpan: 40, sRange: [50, 90], lRange: [15, 90] });
-            // 策略：不使用自动渐变，手动构建有层次的海洋
             const mainHue = rand(190, 240); // 蓝到深蓝
-            
             return [
-                hslToHex(mainHue, rand(80, 100), rand(10, 35)),       // 1. 深渊色（极深）
-                hslToHex(mainHue + rand(-20, 20), rand(50, 70), rand(40, 60)), // 2. 主海色（中等）
-                hslToHex(rand(160, 190), rand(60, 90), rand(70, 85)), // 3. 浅滩青色（偏绿，亮）
+                hslToHex(mainHue, rand(80, 100), rand(10, 35)),       
+                hslToHex(mainHue + rand(-20, 20), rand(50, 70), rand(40, 60)), 
+                hslToHex(rand(160, 190), rand(60, 90), rand(70, 85)), 
                 Math.random() > 0.5 
-                    ? hslToHex(rand(30, 50), rand(30, 60), rand(85, 95)) // 4a. 沙滩色（暖色对比）
-                    : hslToHex(mainHue, rand(10, 30), rand(90, 98))      // 4b. 浪花白（极亮）
+                    ? hslToHex(rand(30, 50), rand(30, 60), rand(85, 95)) 
+                    : hslToHex(mainHue, rand(10, 30), rand(90, 98))      
             ];
         }
-
-    // 逻辑：随机切换三种经典传统配色模式（朱红金、青花蓝、水墨绿）
-    else if (theme === 'tradition') {
-        const style = Math.random();
-        if (style < 0.33) { 
-            // 丹雘 (朱红/金/黑/白) - 故宫风
-            return [
-                hslToHex(rand(350, 360), rand(70, 85), rand(35, 45)), // 宫墙红
-                hslToHex(rand(40, 50), rand(70, 90), rand(60, 75)),   // 琉璃黄
-                hslToHex(rand(0, 40), rand(5, 15), rand(90, 96)),     // 宣纸白
-                hslToHex(rand(0, 0), rand(0, 5), rand(15, 25))        // 徽墨黑
-            ];
-        } else if (style < 0.66) {
-            // 靛青 (蓝/白/灰) - 青花瓷风
-            return [
-                hslToHex(rand(210, 230), rand(60, 80), rand(25, 35)), // 靛蓝
-                hslToHex(rand(190, 210), rand(30, 50), rand(60, 75)), // 影青
-                hslToHex(rand(200, 220), rand(10, 20), rand(85, 95)), // 月白
-                hslToHex(rand(200, 220), rand(20, 40), rand(40, 50))  // 黛蓝
-            ];
-        } else {
-            // 苍色 (绿/赭/米) - 千里江山图风
-            return [
-                hslToHex(rand(160, 180), rand(30, 50), rand(30, 45)), // 祖母绿
-                hslToHex(rand(35, 45), rand(40, 60), rand(60, 75)),   // 赭石
-                hslToHex(rand(80, 100), rand(20, 40), rand(75, 85)),  // 豆绿
-                hslToHex(rand(30, 45), rand(20, 40), rand(88, 95))    // 绢黄
-            ];
+        else if (theme === 'tradition') {
+            const style = Math.random();
+            if (style < 0.33) { 
+                return [hslToHex(rand(350, 360), rand(70, 85), rand(35, 45)), hslToHex(rand(40, 50), rand(70, 90), rand(60, 75)), hslToHex(rand(0, 40), rand(5, 15), rand(90, 96)), hslToHex(rand(0, 0), rand(0, 5), rand(15, 25))];
+            } else if (style < 0.66) {
+                return [hslToHex(rand(210, 230), rand(60, 80), rand(25, 35)), hslToHex(rand(190, 210), rand(30, 50), rand(60, 75)), hslToHex(rand(200, 220), rand(10, 20), rand(85, 95)), hslToHex(rand(200, 220), rand(20, 40), rand(40, 50))];
+            } else {
+                return [hslToHex(rand(160, 180), rand(30, 50), rand(30, 45)), hslToHex(rand(35, 45), rand(40, 60), rand(60, 75)), hslToHex(rand(80, 100), rand(20, 40), rand(75, 85)), hslToHex(rand(30, 45), rand(20, 40), rand(88, 95))];
+            }
         }
-    }
-    // 3. 复古胶片 (Retro)
         else if (theme === 'retro') {
-        const style = Math.random();
-        let colors = [];
-
-        // 1. [港风电影] 浓郁、暗沉、高对比 (王家卫风格)
-        // 关键词：墨绿、酒红、暗夜蓝、钨丝灯黄
-        if (style < 0.4) {
-            colors = [
-                hslToHex(rand(340, 360), rand(40, 60), rand(20, 35)), // 酒红/猪肝红 (暗部)
-                hslToHex(rand(160, 180), rand(30, 50), rand(15, 30)), // 深墨绿 (背景)
-                hslToHex(rand(35, 50), rand(50, 70), rand(40, 55)),   // 芥末黄/旧灯泡色
-                hslToHex(rand(200, 220), rand(20, 40), rand(30, 45))  // 也就是蓝 (胶片暗部偏蓝)
-            ];
-        } 
-        // 2. [泛黄旧照] 怀旧、棕褐、历史感 (Sepia Tone)
-        // 关键词：咖啡、牛皮纸、生锈、沉香
-        else if (style < 0.7) {
-            const baseHue = rand(25, 45); // 橙黄到土黄区间
-            colors = [
-                hslToHex(baseHue, rand(30, 50), rand(15, 25)),        // 深褐/咖啡
-                hslToHex(baseHue + rand(-5, 5), rand(25, 45), rand(35, 50)), // 皮革色/锈色
-                hslToHex(baseHue + rand(-5, 5), rand(20, 40), rand(60, 75)), // 泛黄旧书页 (不再是亮白)
-                hslToHex(0, 0, rand(20, 35))                          // 炭黑/深灰 (增加颗粒感)
-            ];
-        } 
-        // 3. [冷调褪色] 宝丽来、低饱和、甚至有点忧郁
-        // 关键词：雾霾蓝、水泥灰、褪色粉、枯草白
-        else {
-            colors = [
-                hslToHex(rand(190, 210), rand(15, 30), rand(30, 45)), // 雾霾蓝
-                hslToHex(rand(0, 20), rand(15, 30), rand(40, 55)),    // 干枯玫瑰/褪色红
-                hslToHex(rand(160, 180), rand(10, 25), rand(30, 50)), // 灰青色
-                hslToHex(40, rand(10, 30), rand(75, 85))              // 骨色/米灰 (做旧的高光)
-            ];
+            const style = Math.random();
+            let colors = [];
+            if (style < 0.4) {
+                colors = [hslToHex(rand(340, 360), rand(40, 60), rand(20, 35)), hslToHex(rand(160, 180), rand(30, 50), rand(15, 30)), hslToHex(rand(35, 50), rand(50, 70), rand(40, 55)), hslToHex(rand(200, 220), rand(20, 40), rand(30, 45))];
+            } else if (style < 0.7) {
+                const baseHue = rand(25, 45); 
+                colors = [hslToHex(baseHue, rand(30, 50), rand(15, 25)), hslToHex(baseHue + rand(-5, 5), rand(25, 45), rand(35, 50)), hslToHex(baseHue + rand(-5, 5), rand(20, 40), rand(60, 75)), hslToHex(0, 0, rand(20, 35))];
+            } else {
+                colors = [hslToHex(rand(190, 210), rand(15, 30), rand(30, 45)), hslToHex(rand(0, 20), rand(15, 30), rand(40, 55)), hslToHex(rand(160, 180), rand(10, 25), rand(30, 50)), hslToHex(40, rand(10, 30), rand(75, 85))];
+            }
+            colors.sort(() => Math.random() - 0.5);
+            return colors;
         }
-
-        // 随机打乱顺序，让深色不总是在第一个
-        colors.sort(() => Math.random() - 0.5);
         
-        return colors;
-    }
-        
-    return ['#000000', '#333333', '#666666', '#999999'];
+        return ['#000000', '#333333', '#666666', '#999999'];
     }
 
     // UI 交互
@@ -561,8 +520,47 @@
         document.getElementById(`t${index}`).value = color.toUpperCase();
     }
 
-    function downloadPoster() {
-        alert("提示：\nPC端：请直接使用 微信截图 (Alt+A) 或 QQ截图。\n移动端：请直接手机截屏。\n\n这样获取的图片质量最高！");
+    // === 新增：导出海报功能 ===
+    function exportPoster() {
+        const posterNode = document.getElementById('myPoster');
+        const btn = document.getElementById('btnExport');
+        const originalText = btn.innerHTML;
+
+        // 1. 改变按钮状态
+        btn.innerHTML = '⏳ 生成中...';
+        btn.disabled = true;
+
+        // 获取当前文件名参数
+        const theme = document.getElementById('themeTitle').innerText;
+        const serial = document.getElementById('serialNo').innerText;
+        const filename = `配色海报_${theme}_${serial}.png`;
+
+        // 2. 调用 html-to-image
+        // pixelRatio: 3 保证高分屏清晰度
+        // cacheBust: true 防止图片缓存问题（虽然这里主要是CSS绘制）
+        htmlToImage.toPng(posterNode, { 
+            quality: 1.0, 
+            pixelRatio: 3,
+            backgroundColor: '#FDF8F0' // 强制背景色，防止透明
+        })
+        .then(function (dataUrl) {
+            // 3. 创建下载链接
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataUrl;
+            link.click();
+            
+            // 4. 恢复按钮
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showToast('海报已导出 🎉');
+        })
+        .catch(function (error) {
+            console.error('导出失败:', error);
+            alert('导出遇到问题，建议使用截图方式保存。');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
     }
 
     // 复制与提示
@@ -570,7 +568,6 @@
         var toast = document.getElementById("toast");
         toast.className = "show";
         toast.innerText = message;
-        // 清除之前的timer，防止闪烁
         if(window.toastTimer) clearTimeout(window.toastTimer);
         window.toastTimer = setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2000);
     }
@@ -589,22 +586,16 @@
         });
     }
 
-    // 新增：复制整组颜色
     function copyAllHex() {
-        // 获取所有颜色
         const c1 = document.getElementById('t1').value;
         const c2 = document.getElementById('t2').value;
         const c3 = document.getElementById('t3').value;
         const c4 = document.getElementById('t4').value;
-        
-        // 格式化为逗号分隔字符串
         const allColors = `${c1}, ${c2}, ${c3}, ${c4}`;
         
         navigator.clipboard.writeText(allColors).then(() => {
             showToast('整组颜色已复制');
         }).catch(err => {
-            console.error('复制失败', err);
-            // 兼容性方案
             const textArea = document.createElement("textarea");
             textArea.value = allColors;
             document.body.appendChild(textArea);
@@ -614,8 +605,6 @@
             showToast('整组颜色已复制');
         });
     }
-
-    //window.onload = generateNewPalette;
 
 </script>
 
