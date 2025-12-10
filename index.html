@@ -372,7 +372,9 @@
             <option value="natural">自然风景 (Natural)</option>
             <option value="forest">森林物语 (Forest)</option>
             <option value="ocean">深海幽蓝 (Ocean)</option>
+            <option value="sunset">落日橘光 (Sunset)</option>
             <option value="retro">复古胶片 (Retro)</option>
+            <option value="luxury">黑金奢华 (Luxury)</option>
             <option value="tradition">东方雅韵 (Tradition)</option>
         </select>
         <button class="btn-generate" onclick="generateNewPalette()">✨ 随机生成配色</button>
@@ -533,6 +535,69 @@
             return colors;
         }
         
+        //新增黑金奢华
+        else if (theme === 'luxury') {
+            const style = Math.random();
+            
+            if (style < 0.4) {
+                // 变体A: 经典黑金 (Classic Black & Gold)
+                // 重点：黑色不是纯黑，而是带一点暖色相的深炭灰，金色锁定在 Hue 35-48 之间
+                const goldHue = rand(35, 48); 
+                return [
+                    hslToHex(goldHue, 5, 8),    // 近乎黑的深暖灰 (背景)
+                    hslToHex(goldHue, 8, 18),   // 深炭灰 (层次)
+                    hslToHex(goldHue, rand(65, 85), rand(45, 55)), // 醇厚真金 (主色)
+                    hslToHex(goldHue, rand(50, 70), rand(75, 88))  // 香槟金/高光 (点缀)
+                ];
+            } else if (style < 0.7) {
+                // 变体B: 午夜流金 (Midnight Navy & Champagne)
+                // 重点：背景是极深的蓝，搭配低饱和度的香槟金
+                const navyHue = rand(210, 230);
+                return [
+                    hslToHex(navyHue, rand(40, 60), rand(8, 15)),   // 深邃午夜蓝
+                    hslToHex(navyHue, rand(20, 30), rand(25, 35)),  // 哑光蓝灰
+                    hslToHex(38, rand(40, 60), rand(60, 75)),       // 哑光金
+                    hslToHex(40, rand(30, 50), rand(85, 95))        // 珍珠白
+                ];
+            } else {
+                // 变体C: 暗夜玫瑰 (Dark Rose & Copper)
+                // 重点：红铜色金属感
+                return [
+                    hslToHex(0, 0, rand(5, 12)),                    // 纯黑/深灰
+                    hslToHex(350, rand(10, 20), rand(20, 30)),      // 深褐红
+                    hslToHex(15, rand(50, 70), rand(50, 65)),       // 玫瑰铜 (Copper)
+                    hslToHex(15, rand(30, 50), rand(80, 92))        // 浅粉金
+                ];
+            }
+        }
+        
+        // === 新增：落日橘光 (治愈系渐变) ===
+        else if (theme === 'sunset') {
+            // 逻辑：严格锁定在 "紫 -> 红 -> 橙 -> 黄" 的光谱上
+            // 随机一个起点：从深紫(260) 到 洋红(330) 之间开始
+            let startHue = rand(260, 330);
+            let colors = [];
+            
+            // 生成4个颜色，Hue 逐渐增加（向黄色靠近），Lightness 逐渐变亮
+            for(let i=0; i<count; i++) {
+                // 色相推进：每一步增加 20-30度
+                // 如果超过 360，取模处理（比如从紫红过渡到橙黄）
+                let h = (startHue + (i * rand(25, 35))) % 360;
+                
+                // 饱和度：保持高位 (60-90) 以保证鲜艳度
+                let s = rand(65, 95);
+                
+                // 亮度：线性增加，模拟从地平线到天空的亮度差
+                // 比如：20% -> 40% -> 60% -> 80%
+                let l = 20 + (i * 20) + rand(-5, 5); 
+                
+                colors.push(hslToHex(h, s, l));
+            }
+            
+            // 50% 概率反转顺序（从黄到紫 vs 从紫到黄）
+            if (Math.random() > 0.5) colors.reverse();
+            return colors;
+        }
         return ['#000000', '#333333', '#666666', '#999999'];
     }
 
