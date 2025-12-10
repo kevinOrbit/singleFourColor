@@ -544,8 +544,8 @@
                 // 重点：黑色不是纯黑，而是带一点暖色相的深炭灰，金色锁定在 Hue 35-48 之间
                 const goldHue = rand(35, 48); 
                 return [
-                    hslToHex(goldHue, 5, 8),    // 近乎黑的深暖灰 (背景)
-                    hslToHex(goldHue, 8, 18),   // 深炭灰 (层次)
+                    hslToHex(goldHue, 5, 20),    // 近乎黑的深暖灰 (背景)
+                    hslToHex(goldHue, 20, 38),   // 深炭灰 (层次)
                     hslToHex(goldHue, rand(65, 85), rand(45, 55)), // 醇厚真金 (主色)
                     hslToHex(goldHue, rand(50, 70), rand(75, 88))  // 香槟金/高光 (点缀)
                 ];
@@ -563,8 +563,8 @@
                 // 变体C: 暗夜玫瑰 (Dark Rose & Copper)
                 // 重点：红铜色金属感
                 return [
-                    hslToHex(0, 0, rand(5, 12)),                    // 纯黑/深灰
-                    hslToHex(350, rand(10, 20), rand(20, 30)),      // 深褐红
+                    hslToHex(0, 0, rand(5, 22)),                    // 纯黑/深灰
+                    hslToHex(350, rand(23, 45), rand(20, 30)),      // 深褐红
                     hslToHex(15, rand(50, 70), rand(50, 65)),       // 玫瑰铜 (Copper)
                     hslToHex(15, rand(30, 50), rand(80, 92))        // 浅粉金
                 ];
